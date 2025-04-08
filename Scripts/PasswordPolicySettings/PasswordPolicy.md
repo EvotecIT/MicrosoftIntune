@@ -49,6 +49,8 @@ You can configure the following settings at the top of both the detection and re
 - **Password Length**: Longer is better; 14+ characters are recommended by security experts
 - **Password Complexity**: Modern guidance favors length over complexity, but complexity still helps
 - **Password Age**: NIST SP 800-63B now recommends against forced regular password changes
+  - For maximum age, a higher value means passwords expire less frequently (less secure)
+  - For minimum age, a higher value means users must wait longer before changing passwords (more secure)
 - **Password History**: Preventing reuse of the last 24 passwords is considered a strong policy
 
 ## Common Issues

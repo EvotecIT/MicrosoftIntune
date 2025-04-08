@@ -18,7 +18,7 @@
 # Configuration settings - modify these values as needed
 # Set any value to $null to ignore that setting
 $MinPasswordLength = $null       # Minimum number of characters in password (recommended 14+)
-$MaxPasswordAge = $null          # Days before password expires (42-90 days typical, 0 for never)
+$MaxPasswordAge = 42         # Days before password expires (42-90 days typical, 0 for never)
 $MinPasswordAge = $null          # Days before password can be changed (1+ recommended)
 $PasswordHistory = $null         # Number of previous passwords remembered (24+ recommended)
 
@@ -104,32 +104,45 @@ try {
     if ($null -ne $MaxPasswordAge) {
         if ($CurrentPolicy.MaxPasswordAge -ne "Unknown") {
             $CurrentMaxAge = [int]$CurrentPolicy.MaxPasswordAge
+
+            # Add diagnostic information
+            Write-Host "Maximum password age check: Current=$CurrentMaxAge, Required=$MaxPasswordAge"
+
             if ($RequireExactMatch) {
                 $ComplianceStatus.MaxPasswordAgeCompliant = ($CurrentMaxAge -eq $MaxPasswordAge)
+                Write-Host "Using exact match comparison: $($ComplianceStatus.MaxPasswordAgeCompliant)"
             } else {
                 if ($AllowStrongerSettings) {
                     # For max age, lower is stronger (except 0 which means never expire)
                     if ($MaxPasswordAge -eq 0) {
                         # If policy requires never expire, only never expire is compliant
                         $ComplianceStatus.MaxPasswordAgeCompliant = ($CurrentMaxAge -eq 0)
+                        Write-Host "Checking for never expire: $($ComplianceStatus.MaxPasswordAgeCompliant)"
                     } elseif ($CurrentMaxAge -eq 0) {
                         # If current is never expire but policy requires expiry, not compliant
                         $ComplianceStatus.MaxPasswordAgeCompliant = $false
+                        Write-Host "Current setting is never expire, but expiration required: Not Compliant"
                     } else {
-                        # Otherwise, any value less than or equal to max age is compliant
-                        $ComplianceStatus.MaxPasswordAgeCompliant = ($CurrentMaxAge -le $MaxPasswordAge)
+                        # For max age, current should be EQUAL to or GREATER than required
+                        # Lower values make passwords expire sooner (more frequently)
+                        $ComplianceStatus.MaxPasswordAgeCompliant = ($CurrentMaxAge -ge $MaxPasswordAge)
+                        Write-Host "Checking if current ($CurrentMaxAge) >= required ($MaxPasswordAge): $($ComplianceStatus.MaxPasswordAgeCompliant)"
                     }
                 } else {
                     $ComplianceStatus.MaxPasswordAgeCompliant = ($CurrentMaxAge -eq $MaxPasswordAge)
+                    Write-Host "Using exact match (AllowStrongerSettings=false): $($ComplianceStatus.MaxPasswordAgeCompliant)"
                 }
             }
         } else {
             $ComplianceStatus.MaxPasswordAgeCompliant = $false
+            Write-Host "Unknown current MaxPasswordAge: Not Compliant"
         }
 
         $AllCompliant = $AllCompliant -and $ComplianceStatus.MaxPasswordAgeCompliant
+        Write-Host "MaxPasswordAge compliance status: $($ComplianceStatus.MaxPasswordAgeCompliant)"
     } else {
         $ComplianceStatus.MaxPasswordAgeCompliant = $true  # Ignored
+        Write-Host "MaxPasswordAge check ignored (null value)"
     }
 
     # Check minimum password age compliance if configured
@@ -181,26 +194,44 @@ try {
     # Exit with status code based on compliance
     if ($AllCompliant) {
         Write-Host "Password policy settings are compliant."
+        # Add detailed compliance summary
+        Write-Host "`nCompliance Summary:"
+        if ($null -ne $MinPasswordLength) {
+            Write-Host "MinPasswordLength: $($ComplianceStatus.MinPasswordLengthCompliant)"
+        }
+        if ($null -ne $MaxPasswordAge) {
+            Write-Host "MaxPasswordAge: $($ComplianceStatus.MaxPasswordAgeCompliant)"
+        }
+        if ($null -ne $MinPasswordAge) {
+            Write-Host "MinPasswordAge: $($ComplianceStatus.MinPasswordAgeCompliant)"
+        }
+        if ($null -ne $PasswordHistory) {
+            Write-Host "PasswordHistory: $($ComplianceStatus.PasswordHistoryCompliant)"
+        }
         exit 0
     } else {
         Write-Host "Password policy settings are not compliant."
 
-        # Report individual settings status
+        # Report individual settings status with fixed conditional operator format
         if ($null -ne $MinPasswordLength) {
-            Write-Host "Minimum password length: $($CurrentPolicy.MinPasswordLength) (Required: $MinPasswordLength) - $($ComplianceStatus.MinPasswordLengthCompliant ? 'Compliant' : 'Not Compliant')"
+            $complianceText = if ($ComplianceStatus.MinPasswordLengthCompliant) { "Compliant" } else { "Not Compliant" }
+            Write-Host "Minimum password length: $($CurrentPolicy.MinPasswordLength) (Required: $MinPasswordLength) - $complianceText"
         }
         if ($null -ne $MaxPasswordAge) {
-            $currentMaxAgeDisplay = $CurrentPolicy.MaxPasswordAge -eq "0" ? "Never" : $CurrentPolicy.MaxPasswordAge
-            $requiredMaxAgeDisplay = $MaxPasswordAge -eq 0 ? "Never" : $MaxPasswordAge
-            Write-Host "Maximum password age: $currentMaxAgeDisplay (Required: $requiredMaxAgeDisplay) - $($ComplianceStatus.MaxPasswordAgeCompliant ? 'Compliant' : 'Not Compliant')"
+            $currentMaxAgeDisplay = if ($CurrentPolicy.MaxPasswordAge -eq "0") { "Never" } else { $CurrentPolicy.MaxPasswordAge }
+            $requiredMaxAgeDisplay = if ($MaxPasswordAge -eq 0) { "Never" } else { $MaxPasswordAge }
+            $complianceText = if ($ComplianceStatus.MaxPasswordAgeCompliant) { "Compliant" } else { "Not Compliant" }
+            Write-Host "Maximum password age: $currentMaxAgeDisplay (Required: $requiredMaxAgeDisplay) - $complianceText"
         }
         if ($null -ne $MinPasswordAge) {
-            Write-Host "Minimum password age: $($CurrentPolicy.MinPasswordAge) (Required: $MinPasswordAge) - $($ComplianceStatus.MinPasswordAgeCompliant ? 'Compliant' : 'Not Compliant')"
+            $complianceText = if ($ComplianceStatus.MinPasswordAgeCompliant) { "Compliant" } else { "Not Compliant" }
+            Write-Host "Minimum password age: $($CurrentPolicy.MinPasswordAge) (Required: $MinPasswordAge) - $complianceText"
         }
         if ($null -ne $PasswordHistory) {
-            $currentHistoryDisplay = $CurrentPolicy.PasswordHistory -eq "0" ? "None" : $CurrentPolicy.PasswordHistory
-            $requiredHistoryDisplay = $PasswordHistory -eq 0 ? "None" : $PasswordHistory
-            Write-Host "Password history: $currentHistoryDisplay (Required: $requiredHistoryDisplay) - $($ComplianceStatus.PasswordHistoryCompliant ? 'Compliant' : 'Not Compliant')"
+            $currentHistoryDisplay = if ($CurrentPolicy.PasswordHistory -eq "0") { "None" } else { $CurrentPolicy.PasswordHistory }
+            $requiredHistoryDisplay = if ($PasswordHistory -eq 0) { "None" } else { $PasswordHistory }
+            $complianceText = if ($ComplianceStatus.PasswordHistoryCompliant) { "Compliant" } else { "Not Compliant" }
+            Write-Host "Password history: $currentHistoryDisplay (Required: $requiredHistoryDisplay) - $complianceText"
         }
 
         exit 1

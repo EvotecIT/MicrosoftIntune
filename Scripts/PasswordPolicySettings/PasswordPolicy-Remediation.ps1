@@ -107,31 +107,42 @@ try {
         $needMaxAgeChange = $false
         if ($CurrentPolicy.MaxPasswordAge -ne "Unknown") {
             $CurrentMaxAge = [int]$CurrentPolicy.MaxPasswordAge
+
+            # Add diagnostic information
+            Write-Host "Maximum password age check: Current=$CurrentMaxAge, Required=$MaxPasswordAge"
+
             if ($RequireExactMatch) {
                 $needMaxAgeChange = ($CurrentMaxAge -ne $MaxPasswordAge)
+                Write-Host "Using exact match comparison: Need change = $needMaxAgeChange"
             } else {
                 if ($AllowStrongerSettings) {
                     # For max age, lower is stronger (except 0 which means never expire)
                     if ($MaxPasswordAge -eq 0) {
                         # If policy requires never expire, only never expire is compliant
                         $needMaxAgeChange = ($CurrentMaxAge -ne 0)
+                        Write-Host "Checking for never expire: Need change = $needMaxAgeChange"
                     } elseif ($CurrentMaxAge -eq 0) {
                         # If current is never expire but policy requires expiry, need to change
                         $needMaxAgeChange = $true
+                        Write-Host "Current setting is never expire, but expiration required: Need change = true"
                     } else {
-                        # Otherwise, any value less than or equal to max age is compliant
-                        $needMaxAgeChange = ($CurrentMaxAge -gt $MaxPasswordAge)
+                        # For max age, change needed if current is LESS than required
+                        # Lower values make passwords expire sooner (more frequently)
+                        $needMaxAgeChange = ($CurrentMaxAge -lt $MaxPasswordAge)
+                        Write-Host "Checking if current ($CurrentMaxAge) < required ($MaxPasswordAge): Need change = $needMaxAgeChange"
                     }
                 } else {
                     $needMaxAgeChange = ($CurrentMaxAge -ne $MaxPasswordAge)
+                    Write-Host "Using exact match (AllowStrongerSettings=false): Need change = $needMaxAgeChange"
                 }
             }
         } else {
             $needMaxAgeChange = $true
+            Write-Host "Unknown current MaxPasswordAge: Need change = true"
         }
 
         if ($needMaxAgeChange) {
-            $displayMaxAge = $MaxPasswordAge -eq 0 ? "never expire (unlimited)" : "$MaxPasswordAge days"
+            $displayMaxAge = if ($MaxPasswordAge -eq 0) { "never expire (unlimited)" } else { "$MaxPasswordAge days" }
             Write-Host "Setting maximum password age to $displayMaxAge"
             $result = net accounts /maxpwage:$MaxPasswordAge 2>&1
             if ($LASTEXITCODE -eq 0) {
@@ -140,6 +151,8 @@ try {
             } else {
                 Write-Warning "Failed to set maximum password age: $result"
             }
+        } else {
+            Write-Host "No change needed for maximum password age."
         }
     }
 
