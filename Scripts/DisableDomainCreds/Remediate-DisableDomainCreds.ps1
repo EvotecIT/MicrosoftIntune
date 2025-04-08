@@ -11,8 +11,6 @@
 
 .NOTES
     Version: 1.0
-    Author: Intune Administrator
-    Last Updated: 2023-11-28
 
     This setting takes effect immediately and does not require a reboot.
 

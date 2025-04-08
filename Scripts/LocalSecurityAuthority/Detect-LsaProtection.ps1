@@ -9,8 +9,6 @@
 
 .NOTES
     Version: 1.0
-    Author: Intune Administrator
-    Last Updated: 2023-11-28
 
     References:
     - https://learn.microsoft.com/en-us/windows-server/security/credentials-protection-and-management/configuring-additional-lsa-protection

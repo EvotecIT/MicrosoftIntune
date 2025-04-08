@@ -9,8 +9,6 @@
 
 .NOTES
     Version: 1.0
-    Author: Intune Administrator
-    Last Updated: 2023-11-28
 
     This setting requires a reboot to take effect.
 
