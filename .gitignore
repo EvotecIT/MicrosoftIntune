@@ -1,0 +1,6 @@
+﻿.vs/*
+.vscode/*
+Ignore/*
+*.html
+*.log
+*.xml
