@@ -1,18 +1,33 @@
 ﻿<#
 .SYNOPSIS
-    Remediation script for Password Policy Settings in Intune
+    Configures password policy settings to comply with security requirements.
+
 .DESCRIPTION
-    Applies the required password policy settings:
+    This script applies the required password policy settings:
     - Minimum password length: Number of characters required in password
     - Maximum password age: Days before password expires
     - Minimum password age: Days before password can be changed
     - Password history: Number of previous passwords remembered
+
 .NOTES
     Version: 1.1
+    Author: Intune Administrator
+
     Security recommendation: NIST SP 800-63B recommends:
     - Minimum length of 8 characters (14+ recommended by many standards)
     - No mandatory periodic password resets
     - Password history to prevent reuse
+
+    References:
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/password-policy
+    - https://pages.nist.gov/800-63-3/sp800-63b.html
+
+.EXAMPLE
+    .\Remediate-PasswordPolicy.ps1
+    Applies password policy settings as configured in the script parameters.
+
+.LINK
+    https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/password-policy
 #>
 
 # Configuration settings - modify these values as needed

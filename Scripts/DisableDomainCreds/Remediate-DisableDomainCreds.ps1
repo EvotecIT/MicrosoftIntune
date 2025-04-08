@@ -11,6 +11,7 @@
 
 .NOTES
     Version: 1.0
+    Author: Intune Administrator
 
     This setting takes effect immediately and does not require a reboot.
 

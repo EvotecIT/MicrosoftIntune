@@ -9,6 +9,7 @@
 
 .NOTES
     Version: 1.0
+    Author: Intune Administrator
 
     This setting requires a reboot to take effect.
 

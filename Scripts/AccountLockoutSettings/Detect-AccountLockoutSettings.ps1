@@ -1,14 +1,29 @@
 ﻿<#
 .SYNOPSIS
-    Detection script for Account Lockout Settings in Intune
+    Detects if account lockout settings comply with security requirements.
+
 .DESCRIPTION
-    Checks if the current account lockout settings match the required configuration
+    This script checks if the current account lockout settings match the required configuration:
     - Account lockout threshold: Number of invalid attempts before lockout
     - Account lockout duration: Minutes before locked account is automatically unlocked
     - Reset account lockout counter: Minutes before the bad logon attempts counter is reset
+
 .NOTES
     Version: 1.2
-    Note: Windows requires lockout duration to be set to 30 minutes or higher on some systems
+    Author: Intune Administrator
+
+    Note: Windows requires lockout duration to be set to 30 minutes or higher on some systems.
+
+    References:
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/account-lockout-threshold
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/account-lockout-duration
+
+.EXAMPLE
+    .\Detect-AccountLockoutSettings.ps1
+    Returns exit code 0 if account lockout settings are compliant, 1 if not.
+
+.LINK
+    https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/account-lockout-policy
 #>
 
 # Configuration settings - modify these values as needed

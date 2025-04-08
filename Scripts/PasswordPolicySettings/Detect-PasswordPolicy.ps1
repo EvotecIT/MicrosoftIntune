@@ -1,18 +1,33 @@
 ﻿<#
 .SYNOPSIS
-    Detection script for Password Policy Settings in Intune
+    Detects if password policy settings comply with security requirements.
+
 .DESCRIPTION
-    Checks if the current password policy settings match the required configuration:
+    This script checks if the current password policy settings match the required configuration:
     - Minimum password length: Number of characters required in password
     - Maximum password age: Days before password expires
     - Minimum password age: Days before password can be changed
     - Password history: Number of previous passwords remembered
+
 .NOTES
     Version: 1.1
+    Author: Intune Administrator
+
     Security recommendation: NIST SP 800-63B recommends:
     - Minimum length of 8 characters (14+ recommended by many standards)
     - No mandatory periodic password resets
     - Password history to prevent reuse
+
+    References:
+    - https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/password-policy
+    - https://pages.nist.gov/800-63-3/sp800-63b.html
+
+.EXAMPLE
+    .\Detect-PasswordPolicy.ps1
+    Returns exit code 0 if password policy settings are compliant, 1 if not.
+
+.LINK
+    https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/password-policy
 #>
 
 # Configuration settings - modify these values as needed
