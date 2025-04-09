@@ -28,11 +28,11 @@
 
 # Configuration settings - modify these values as needed
 $LockoutThreshold = 5        # Between 1-10, recommended 5
-$LockoutDuration = 30        # Minutes, must be 30 or higher on many systems
+$LockoutDuration = 15        # Minutes, must be 30 or higher on many systems
 $LockoutWindow = 15          # Minutes, minimum 15
 
 # Options to make remediation match detection behavior
-$AllowHigherDurations = $true    # Allow durations higher than specified (e.g., 35 minutes)
+$AllowHigherDurations = $false   # Allow durations higher than specified (e.g., 35 minutes)
 $RequireExactMatch = $true       # If false, allows values that meet security needs but aren't exact matches
 
 function Get-AccountSettings {
