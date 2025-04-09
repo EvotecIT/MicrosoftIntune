@@ -32,14 +32,14 @@
 
 # Configuration settings - modify these values as needed
 # Set any value to $null to ignore that setting
-$MinPasswordLength = $null       # Minimum number of characters in password (recommended 14+)
-$MaxPasswordAge = 41          # Days before password expires (42-90 days typical, 0 for never)
-$MinPasswordAge = $null          # Days before password can be changed (1+ recommended)
-$PasswordHistory = $null         # Number of previous passwords remembered (24+ recommended)
+$MinPasswordLength = 14     # Minimum number of characters in password (recommended 14+)
+$MaxPasswordAge = 60        # Days before password expires (42-90 days typical, 0 for never)
+$MinPasswordAge = 1         # Days before password can be changed (1+ recommended)
+$PasswordHistory = 24       # Number of previous passwords remembered (24+ recommended)
 
 # Options to make remediation match detection behavior
-$AllowStrongerSettings = $true    # Allow settings that exceed minimum security requirements
-$RequireExactMatch = $false       # If false, allows values that meet security needs but aren't exact matches
+$AllowStrongerSettings = $false    # Allow settings that exceed minimum security requirements
+$RequireExactMatch = $true       # If false, allows values that meet security needs but aren't exact matches
 
 function Get-PasswordPolicy {
     <#
