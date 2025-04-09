@@ -9,6 +9,7 @@
     When this setting is enabled, Credential Manager does not save passwords or credentials for later use when a user
     connects to a network resource, enhancing security by preventing credential caching.
 
+    This script detects & fixes: Disable the local storage of passwords and credentials in Secure Score
 .NOTES
     Version: 1.0
     Author: Intune Administrator
