@@ -247,27 +247,62 @@ try {
         $newSettings = Get-PasswordPolicy
 
         # Check if any target values weren't achieved
-        if ($null -ne $MinPasswordLength) {
-            Write-Host "Current minimum password length: $($newSettings.MinPasswordLength) (Target: $MinPasswordLength)"
+        $AllTargetsAchieved = $true
+
+        if ($null -ne $MinPasswordLength -and [int]$newSettings.MinPasswordLength -ne $MinPasswordLength) {
+            Write-Warning "Minimum password length: Expected $MinPasswordLength, but found $($newSettings.MinPasswordLength)."
+            $AllTargetsAchieved = $false
         }
-        if ($null -ne $MaxPasswordAge) {
-            $maxAgeDisplay = if ($newSettings.MaxPasswordAge -eq "0") { "Never" } else { "$($newSettings.MaxPasswordAge) days" }
-            $targetMaxAgeDisplay = if ($MaxPasswordAge -eq 0) { "Never" } else { "$MaxPasswordAge days" }
-            Write-Host "Current maximum password age: $maxAgeDisplay (Target: $targetMaxAgeDisplay)"
+        if ($null -ne $MaxPasswordAge -and [int]$newSettings.MaxPasswordAge -ne $MaxPasswordAge) {
+            Write-Warning "Maximum password age: Expected $MaxPasswordAge days, but found $($newSettings.MaxPasswordAge) days."
+            $AllTargetsAchieved = $false
         }
-        if ($null -ne $MinPasswordAge) {
-            Write-Host "Current minimum password age: $($newSettings.MinPasswordAge) days (Target: $MinPasswordAge days)"
+        if ($null -ne $MinPasswordAge -and [int]$newSettings.MinPasswordAge -ne $MinPasswordAge) {
+            Write-Warning "Minimum password age: Expected $MinPasswordAge days, but found $($newSettings.MinPasswordAge) days."
+            $AllTargetsAchieved = $false
         }
-        if ($null -ne $PasswordHistory) {
-            $historyDisplay = if ($newSettings.PasswordHistory -eq "0") { "None" } else { $newSettings.PasswordHistory }
-            $targetHistoryDisplay = if ($PasswordHistory -eq 0) { "None" } else { $PasswordHistory }
-            Write-Host "Current password history: $historyDisplay (Target: $targetHistoryDisplay)"
+        if ($null -ne $PasswordHistory -and [int]$newSettings.PasswordHistory -ne $PasswordHistory) {
+            Write-Warning "Password history: Expected $PasswordHistory, but found $($newSettings.PasswordHistory)."
+            $AllTargetsAchieved = $false
+        }
+
+        if ($AllTargetsAchieved) {
+            Write-Host "Password policy settings are now compliant."
+            exit 0
+        } else {
+            Write-Error "Failed to apply all required password policy settings. Some settings are still non-compliant."
+            exit 1
         }
     } else {
-        Write-Host "No changes needed. Password policy settings are already configured correctly."
-    }
+        # If no changes were made, verify compliance
+        $newSettings = Get-PasswordPolicy
+        $AllTargetsAchieved = $true
 
-    exit 0
+        if ($null -ne $MinPasswordLength -and [int]$newSettings.MinPasswordLength -ne $MinPasswordLength) {
+            Write-Warning "Minimum password length: Expected $MinPasswordLength, but found $($newSettings.MinPasswordLength)."
+            $AllTargetsAchieved = $false
+        }
+        if ($null -ne $MaxPasswordAge -and [int]$newSettings.MaxPasswordAge -ne $MaxPasswordAge) {
+            Write-Warning "Maximum password age: Expected $MaxPasswordAge days, but found $($newSettings.MaxPasswordAge) days."
+            $AllTargetsAchieved = $false
+        }
+        if ($null -ne $MinPasswordAge -and [int]$newSettings.MinPasswordAge -ne $MinPasswordAge) {
+            Write-Warning "Minimum password age: Expected $MinPasswordAge days, but found $($newSettings.MinPasswordAge) days."
+            $AllTargetsAchieved = $false
+        }
+        if ($null -ne $PasswordHistory -and [int]$newSettings.PasswordHistory -ne $PasswordHistory) {
+            Write-Warning "Password history: Expected $PasswordHistory, but found $($newSettings.PasswordHistory)."
+            $AllTargetsAchieved = $false
+        }
+
+        if ($AllTargetsAchieved) {
+            Write-Host "Password policy settings are already compliant."
+            exit 0
+        } else {
+            Write-Error "Password policy settings are not compliant. No changes were made due to errors."
+            exit 1
+        }
+    }
 } catch {
     $errMsg = $_.Exception.Message
     Write-Error "Error applying password policy settings: $errMsg"
