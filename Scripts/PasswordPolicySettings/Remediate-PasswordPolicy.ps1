@@ -222,7 +222,7 @@ try {
         }
 
         if ($needHistoryChange) {
-            $displayHistory = $PasswordHistory -eq 0 ? "none" : "$PasswordHistory passwords"
+            $displayHistory = if ($PasswordHistory -eq 0) { "none" } else { "$PasswordHistory passwords" }
             Write-Host "Setting password history to remember $displayHistory"
             $result = net accounts /uniquepw:$PasswordHistory 2>&1
             if ($LASTEXITCODE -eq 0) {
@@ -251,16 +251,16 @@ try {
             Write-Host "Current minimum password length: $($newSettings.MinPasswordLength) (Target: $MinPasswordLength)"
         }
         if ($null -ne $MaxPasswordAge) {
-            $maxAgeDisplay = $newSettings.MaxPasswordAge -eq "0" ? "Never" : "$($newSettings.MaxPasswordAge) days"
-            $targetMaxAgeDisplay = $MaxPasswordAge -eq 0 ? "Never" : "$MaxPasswordAge days"
+            $maxAgeDisplay = if ($newSettings.MaxPasswordAge -eq "0") { "Never" } else { "$($newSettings.MaxPasswordAge) days" }
+            $targetMaxAgeDisplay = if ($MaxPasswordAge -eq 0) { "Never" } else { "$MaxPasswordAge days" }
             Write-Host "Current maximum password age: $maxAgeDisplay (Target: $targetMaxAgeDisplay)"
         }
         if ($null -ne $MinPasswordAge) {
             Write-Host "Current minimum password age: $($newSettings.MinPasswordAge) days (Target: $MinPasswordAge days)"
         }
         if ($null -ne $PasswordHistory) {
-            $historyDisplay = $newSettings.PasswordHistory -eq "0" ? "None" : $newSettings.PasswordHistory
-            $targetHistoryDisplay = $PasswordHistory -eq 0 ? "None" : $PasswordHistory
+            $historyDisplay = if ($newSettings.PasswordHistory -eq "0") { "None" } else { $newSettings.PasswordHistory }
+            $targetHistoryDisplay = if ($PasswordHistory -eq 0) { "None" } else { $PasswordHistory }
             Write-Host "Current password history: $historyDisplay (Target: $targetHistoryDisplay)"
         }
     } else {
