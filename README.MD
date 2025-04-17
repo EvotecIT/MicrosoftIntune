@@ -22,7 +22,15 @@ Since Intune does not support the direct application of security policies, these
 - **Detect-DisableDomainCreds.ps1**: Detects if credential storage is disabled.
 - **Remediate-DisableDomainCreds.ps1**: Disables credential storage for network authentication.
 
+### Windows Store App Management
+- **Detect-AppRemoval.ps1**: Detects compliance with configured app presence policy.
+- **Remediate-AppRemoval.ps1**: Removes or ensures presence of specified Windows Store apps.
+  - Supports both inclusion and exclusion modes
+  - Protects critical system apps
+  - Includes WhatIf support for safe testing
+
 ## Usage
 
 - Refer to the `.SYNOPSIS` and `.EXAMPLE` sections in each script for detailed usage instructions.
+- Check each script folder's README.md for detailed configuration options.
 - Ensure you have administrative privileges to execute these scripts.
