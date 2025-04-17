@@ -29,6 +29,14 @@ Since Intune does not support the direct application of security policies, these
   - Protects critical system apps
   - Includes WhatIf support for safe testing
 
+### Remote Desktop Protocol Settings
+- **Detect-RDPSettings.ps1**: Detects if RDP settings comply with security requirements.
+- **Remediate-RDPSettings.ps1**: Configures RDP security settings and access.
+  - Can enable or disable RDP completely
+  - Enforces Network Level Authentication (NLA)
+  - Manages Windows Firewall rules automatically
+  - Includes WhatIf support for safe testing
+
 ## Usage
 
 - Refer to the `.SYNOPSIS` and `.EXAMPLE` sections in each script for detailed usage instructions.
