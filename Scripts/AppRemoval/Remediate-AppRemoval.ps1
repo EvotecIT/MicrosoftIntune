@@ -25,10 +25,6 @@
     .\Remediate-AppRemoval.ps1
     Removes non-compliant apps based on the configured policy.
 
-.EXAMPLE
-    .\Remediate-AppRemoval.ps1 -WhatIf
-    Shows which apps would be removed without actually removing them.
-
 .LINK
     https://learn.microsoft.com/en-us/powershell/module/appx
 #>
