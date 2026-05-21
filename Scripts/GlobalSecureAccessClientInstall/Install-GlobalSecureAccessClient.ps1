@@ -152,8 +152,12 @@ function Set-RegistryValue {
     )
 
     if (-not (Test-Path -Path $Path)) {
-        New-Item -Path $Path -Force | Out-Null
-        Write-GsaLog "Created registry key: $Path"
+        if ($WhatIf) {
+            Write-GsaLog "WhatIf: Would create registry key $Path"
+        } else {
+            New-Item -Path $Path -Force | Out-Null
+            Write-GsaLog "Created registry key: $Path"
+        }
     }
 
     $ExistingValue = $null
@@ -224,14 +228,19 @@ try {
         throw "Unsupported operation '$Operation'. Use Install or Uninstall."
     }
 
-    if ($Operation -eq "Install" -and -not $ForceInstall -and (Test-MinimumVersionMet -MinimumVersion $MinimumClientVersion)) {
-        Write-GsaLog "Installed Global Secure Access client already meets minimum version $MinimumClientVersion."
-        exit 0
-    }
-
     $RebootRequired = $false
     if ($Operation -eq "Install") {
         $RebootRequired = Set-IPv4Preference
+    }
+
+    if ($Operation -eq "Install" -and -not $ForceInstall -and (Test-MinimumVersionMet -MinimumVersion $MinimumClientVersion)) {
+        Write-GsaLog "Installed Global Secure Access client already meets minimum version $MinimumClientVersion."
+        if ($RebootRequired) {
+            Write-GsaLog "A reboot is required for the IPv4 preference registry change."
+            exit 3010
+        }
+
+        exit 0
     }
 
     $InstallerPath = Resolve-InstallerPath

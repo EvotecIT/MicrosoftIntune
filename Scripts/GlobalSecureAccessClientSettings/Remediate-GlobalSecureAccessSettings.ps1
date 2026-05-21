@@ -129,7 +129,7 @@ function Get-UserRegistryTargets {
     $Targets = @()
     $LoadedUserSids = Get-ChildItem -Path "Registry::HKEY_USERS" -ErrorAction SilentlyContinue |
         Where-Object {
-            $_.PSChildName -match "^S-1-5-21-" -and
+            ($_.PSChildName -match "^S-1-5-21-" -or $_.PSChildName -match "^S-1-12-1-") -and
             $_.PSChildName -notlike "*_Classes"
         } |
         Select-Object -ExpandProperty PSChildName
@@ -153,6 +153,19 @@ function ConvertTo-Hashtable {
 
     if ($InputObject -is [hashtable]) {
         return $InputObject
+    }
+
+    if ($InputObject -is [System.Collections.IEnumerable] -and $InputObject -isnot [string]) {
+        $Items = New-Object System.Collections.ArrayList
+        foreach ($Item in $InputObject) {
+            if ($null -eq $Item -or $Item -is [string] -or $Item.GetType().IsValueType) {
+                [void]$Items.Add($Item)
+            } else {
+                [void]$Items.Add((ConvertTo-Hashtable -InputObject $Item))
+            }
+        }
+
+        return @($Items.ToArray())
     }
 
     $Hashtable = @{}
