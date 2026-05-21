@@ -59,6 +59,12 @@ $DisableFirefoxQuic = $true
 $DisableFirefoxDnsOverHttps = $true
 $ApplyFirefoxPolicyWhenFirefoxMissing = $false
 
+$NativeProgramFiles = if ([Environment]::Is64BitOperatingSystem -and -not [string]::IsNullOrWhiteSpace($env:ProgramW6432)) {
+    $env:ProgramW6432
+} else {
+    $env:ProgramFiles
+}
+
 $GsaMachinePath = "HKLM:\SOFTWARE\Microsoft\Global Secure Access Client"
 $GsaUserSubPath = "Software\Microsoft\Global Secure Access Client"
 $IPv6ParametersPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters"
@@ -66,9 +72,9 @@ $IPv6DisabledComponentsName = "DisabledComponents"
 $IPv4PreferredValue = 0x20
 $EdgePolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
 $ChromePolicyPath = "HKLM:\SOFTWARE\Policies\Google\Chrome"
-$FirefoxDistributionPath = "$env:ProgramFiles\Mozilla Firefox\distribution"
+$FirefoxDistributionPath = Join-Path -Path $NativeProgramFiles -ChildPath "Mozilla Firefox\distribution"
 $FirefoxPolicyPath = Join-Path -Path $FirefoxDistributionPath -ChildPath "policies.json"
-$FirefoxExecutablePath = "$env:ProgramFiles\Mozilla Firefox\firefox.exe"
+$FirefoxExecutablePath = Join-Path -Path $NativeProgramFiles -ChildPath "Mozilla Firefox\firefox.exe"
 
 function Set-RegistryValue {
     param (
@@ -94,25 +100,38 @@ function Set-RegistryValue {
         }
     }
 
+    $ExpectedKind = switch ($PropertyType) {
+        "DWord" { [Microsoft.Win32.RegistryValueKind]::DWord }
+        "String" { [Microsoft.Win32.RegistryValueKind]::String }
+    }
     $ExistingValue = $null
+    $ExistingKind = $null
     $Exists = $false
     try {
         $ExistingValue = Get-ItemPropertyValue -Path $Path -Name $Name -ErrorAction Stop
+        $ExistingKind = (Get-Item -Path $Path -ErrorAction Stop).GetValueKind($Name)
         $Exists = $true
     } catch {
         $Exists = $false
     }
 
-    if ($Exists -and $ExistingValue -eq $Value) {
+    if ($Exists -and $ExistingValue -eq $Value -and $ExistingKind -eq $ExpectedKind) {
         return $false
     }
 
     if ($WhatIf) {
-        Write-Host "WhatIf: Would set $Path\$Name to $Value as $PropertyType" -ForegroundColor Cyan
+        if ($Exists -and $ExistingKind -ne $ExpectedKind) {
+            Write-Host "WhatIf: Would replace $Path\$Name with $PropertyType value $Value" -ForegroundColor Cyan
+        } else {
+            Write-Host "WhatIf: Would set $Path\$Name to $Value as $PropertyType" -ForegroundColor Cyan
+        }
         return $true
     }
 
-    if ($Exists) {
+    if ($Exists -and $ExistingKind -ne $ExpectedKind) {
+        Remove-ItemProperty -Path $Path -Name $Name -Force
+        New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $PropertyType -Force | Out-Null
+    } elseif ($Exists) {
         Set-ItemProperty -Path $Path -Name $Name -Value $Value -Force
     } else {
         New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $PropertyType -Force | Out-Null
@@ -305,7 +324,7 @@ function Set-GlobalSecureAccessSettings {
             $UserTargets = Get-UserRegistryTargets
 
             if ($UserTargets.Count -eq 0) {
-                $FailedSettings += "No loaded user registry hives were found for Private Access policy remediation"
+                Write-Host "No loaded user registry hives were found for Private Access policy remediation. Skipping user-scoped setting."
             }
 
             foreach ($Target in $UserTargets) {

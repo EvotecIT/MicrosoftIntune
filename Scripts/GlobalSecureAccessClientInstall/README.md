@@ -42,7 +42,7 @@ powershell.exe -ExecutionPolicy Bypass -File Install-GlobalSecureAccessClient.ps
 
 Uninstall command:
 ```powershell
-"GlobalSecureAccessClient.exe" /uninstall /quiet /norestart
+powershell.exe -ExecutionPolicy Bypass -File Install-GlobalSecureAccessClient.ps1 -Operation Uninstall
 ```
 
 Return codes:

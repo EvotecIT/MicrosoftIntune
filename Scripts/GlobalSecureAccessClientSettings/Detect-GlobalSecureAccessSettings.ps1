@@ -53,16 +53,22 @@ $DisableFirefoxQuic = $true
 $DisableFirefoxDnsOverHttps = $true
 $ApplyFirefoxPolicyWhenFirefoxMissing = $false
 
+$NativeProgramFiles = if ([Environment]::Is64BitOperatingSystem -and -not [string]::IsNullOrWhiteSpace($env:ProgramW6432)) {
+    $env:ProgramW6432
+} else {
+    $env:ProgramFiles
+}
+
 $GsaMachinePath = "HKLM:\SOFTWARE\Microsoft\Global Secure Access Client"
 $GsaUserSubPath = "Software\Microsoft\Global Secure Access Client"
-$ClientExecutablePath = "$env:ProgramFiles\Global Secure Access Client\TrayApp\GlobalSecureAccessClient.exe"
+$ClientExecutablePath = Join-Path -Path $NativeProgramFiles -ChildPath "Global Secure Access Client\TrayApp\GlobalSecureAccessClient.exe"
 $IPv6ParametersPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters"
 $IPv6DisabledComponentsName = "DisabledComponents"
 $IPv4PreferredValue = 0x20
 $EdgePolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
 $ChromePolicyPath = "HKLM:\SOFTWARE\Policies\Google\Chrome"
-$FirefoxPolicyPath = "$env:ProgramFiles\Mozilla Firefox\distribution\policies.json"
-$FirefoxExecutablePath = "$env:ProgramFiles\Mozilla Firefox\firefox.exe"
+$FirefoxPolicyPath = Join-Path -Path $NativeProgramFiles -ChildPath "Mozilla Firefox\distribution\policies.json"
+$FirefoxExecutablePath = Join-Path -Path $NativeProgramFiles -ChildPath "Mozilla Firefox\firefox.exe"
 
 function Get-RegistryValue {
     param (
@@ -96,12 +102,32 @@ function Test-RegistryValue {
         [string]$Name,
 
         [Parameter(Mandatory = $true)]
-        [object]$ExpectedValue
+        [object]$ExpectedValue,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("DWord", "String")]
+        [string]$PropertyType
     )
 
     $Current = Get-RegistryValue -Path $Path -Name $Name
+    $ExpectedKind = switch ($PropertyType) {
+        "DWord" { [Microsoft.Win32.RegistryValueKind]::DWord }
+        "String" { [Microsoft.Win32.RegistryValueKind]::String }
+    }
+
     if (-not $Current.Exists -or $Current.Value -ne $ExpectedValue) {
         return "Registry value $Path\$Name is '$($Current.Value)', expected '$ExpectedValue'"
+    }
+
+    $CurrentKind = $null
+    try {
+        $CurrentKind = (Get-Item -Path $Path -ErrorAction Stop).GetValueKind($Name)
+    } catch {
+        return "Registry value $Path\$Name type could not be read, expected '$ExpectedKind'"
+    }
+
+    if ($CurrentKind -ne $ExpectedKind) {
+        return "Registry value $Path\$Name type is '$CurrentKind', expected '$ExpectedKind'"
     }
 
     return $null
@@ -242,7 +268,7 @@ function Test-GlobalSecureAccessCompliance {
     $NonCompliantSettings += Test-ClientInstall
 
     foreach ($Setting in $GsaMachineSettings.GetEnumerator()) {
-        $Issue = Test-RegistryValue -Path $GsaMachinePath -Name $Setting.Key -ExpectedValue $Setting.Value
+        $Issue = Test-RegistryValue -Path $GsaMachinePath -Name $Setting.Key -ExpectedValue $Setting.Value -PropertyType DWord
         if ($Issue) {
             $NonCompliantSettings += $Issue
         }
@@ -250,7 +276,7 @@ function Test-GlobalSecureAccessCompliance {
 
     if ($ConfigureIPv4Preference) {
         $ExpectedIPv6Value = if ($PreferIPv4OverIPv6) { $IPv4PreferredValue } else { 0 }
-        $Issue = Test-RegistryValue -Path $IPv6ParametersPath -Name $IPv6DisabledComponentsName -ExpectedValue $ExpectedIPv6Value
+        $Issue = Test-RegistryValue -Path $IPv6ParametersPath -Name $IPv6DisabledComponentsName -ExpectedValue $ExpectedIPv6Value -PropertyType DWord
         if ($Issue) {
             $NonCompliantSettings += $Issue
         }
@@ -260,11 +286,11 @@ function Test-GlobalSecureAccessCompliance {
         $ExpectedPrivateAccessValue = if ($DisablePrivateAccessForUser) { 1 } else { 0 }
         $UserTargets = Get-UserRegistryTargets
         if ($UserTargets.Count -eq 0) {
-            $NonCompliantSettings += "No loaded user registry hives were found for Private Access policy detection"
+            Write-Host "No loaded user registry hives were found for Private Access policy detection. Skipping user-scoped check."
         }
 
         foreach ($Target in $UserTargets) {
-            $Issue = Test-RegistryValue -Path $Target -Name "IsPrivateAccessDisabledByUser" -ExpectedValue $ExpectedPrivateAccessValue
+            $Issue = Test-RegistryValue -Path $Target -Name "IsPrivateAccessDisabledByUser" -ExpectedValue $ExpectedPrivateAccessValue -PropertyType DWord
             if ($Issue) {
                 $NonCompliantSettings += $Issue
             }
@@ -273,22 +299,22 @@ function Test-GlobalSecureAccessCompliance {
 
     if ($ConfigureBrowserTrafficControls) {
         if ($DisableEdgeQuic) {
-            $Issue = Test-RegistryValue -Path $EdgePolicyPath -Name "QuicAllowed" -ExpectedValue 0
+            $Issue = Test-RegistryValue -Path $EdgePolicyPath -Name "QuicAllowed" -ExpectedValue 0 -PropertyType DWord
             if ($Issue) { $NonCompliantSettings += $Issue }
         }
 
         if ($DisableEdgeDnsOverHttps) {
-            $Issue = Test-RegistryValue -Path $EdgePolicyPath -Name "DnsOverHttpsMode" -ExpectedValue "off"
+            $Issue = Test-RegistryValue -Path $EdgePolicyPath -Name "DnsOverHttpsMode" -ExpectedValue "off" -PropertyType String
             if ($Issue) { $NonCompliantSettings += $Issue }
         }
 
         if ($DisableChromeQuic) {
-            $Issue = Test-RegistryValue -Path $ChromePolicyPath -Name "QuicAllowed" -ExpectedValue 0
+            $Issue = Test-RegistryValue -Path $ChromePolicyPath -Name "QuicAllowed" -ExpectedValue 0 -PropertyType DWord
             if ($Issue) { $NonCompliantSettings += $Issue }
         }
 
         if ($DisableChromeDnsOverHttps) {
-            $Issue = Test-RegistryValue -Path $ChromePolicyPath -Name "DnsOverHttpsMode" -ExpectedValue "off"
+            $Issue = Test-RegistryValue -Path $ChromePolicyPath -Name "DnsOverHttpsMode" -ExpectedValue "off" -PropertyType String
             if ($Issue) { $NonCompliantSettings += $Issue }
         }
 

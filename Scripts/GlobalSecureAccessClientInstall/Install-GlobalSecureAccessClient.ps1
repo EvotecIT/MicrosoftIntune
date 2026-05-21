@@ -23,15 +23,22 @@
     Installs the Global Secure Access client silently.
 
 .EXAMPLE
-    Set $Operation = "Uninstall" and run the script.
+    .\Install-GlobalSecureAccessClient.ps1 -Operation Uninstall
     Uninstalls the Global Secure Access client silently.
 .LINK
     https://learn.microsoft.com/en-us/entra/global-secure-access/how-to-install-windows-client
 #>
 
+param (
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("Install", "Uninstall")]
+    [string]$Operation = "Install",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$WhatIf
+)
+
 # Configuration settings - modify these values as needed
-$WhatIf = $false
-$Operation = "Install" # "Install" or "Uninstall"
 
 # Put the Microsoft installer in the same folder as this script.
 # Windows on Arm devices require the Arm64 client installer from Microsoft.
@@ -49,8 +56,14 @@ $ForceInstall = $false
 $ConfigureIPv4Preference = $true
 $PreferIPv4OverIPv6 = $true
 
+$NativeProgramFiles = if ([Environment]::Is64BitOperatingSystem -and -not [string]::IsNullOrWhiteSpace($env:ProgramW6432)) {
+    $env:ProgramW6432
+} else {
+    $env:ProgramFiles
+}
+
 $LogFile = "$env:ProgramData\GSAInstall\install.log"
-$ClientExecutablePath = "$env:ProgramFiles\Global Secure Access Client\TrayApp\GlobalSecureAccessClient.exe"
+$ClientExecutablePath = Join-Path -Path $NativeProgramFiles -ChildPath "Global Secure Access Client\TrayApp\GlobalSecureAccessClient.exe"
 $IPv6ParametersPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters"
 $IPv6DisabledComponentsName = "DisabledComponents"
 $IPv4PreferredValue = 0x20
@@ -160,26 +173,39 @@ function Set-RegistryValue {
         }
     }
 
+    $ExpectedKind = switch ($PropertyType) {
+        "DWord" { [Microsoft.Win32.RegistryValueKind]::DWord }
+        "String" { [Microsoft.Win32.RegistryValueKind]::String }
+    }
     $ExistingValue = $null
+    $ExistingKind = $null
     $Exists = $false
     try {
         $ExistingValue = Get-ItemPropertyValue -Path $Path -Name $Name -ErrorAction Stop
+        $ExistingKind = (Get-Item -Path $Path -ErrorAction Stop).GetValueKind($Name)
         $Exists = $true
     } catch {
         $Exists = $false
     }
 
-    if ($Exists -and $ExistingValue -eq $Value) {
+    if ($Exists -and $ExistingValue -eq $Value -and $ExistingKind -eq $ExpectedKind) {
         Write-GsaLog "Registry value already correct: $Path\$Name = $Value"
         return $false
     }
 
     if ($WhatIf) {
-        Write-GsaLog "WhatIf: Would set $Path\$Name to $Value as $PropertyType"
+        if ($Exists -and $ExistingKind -ne $ExpectedKind) {
+            Write-GsaLog "WhatIf: Would replace $Path\$Name with $PropertyType value $Value"
+        } else {
+            Write-GsaLog "WhatIf: Would set $Path\$Name to $Value as $PropertyType"
+        }
         return $true
     }
 
-    if ($Exists) {
+    if ($Exists -and $ExistingKind -ne $ExpectedKind) {
+        Remove-ItemProperty -Path $Path -Name $Name -Force
+        New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $PropertyType -Force | Out-Null
+    } elseif ($Exists) {
         Set-ItemProperty -Path $Path -Name $Name -Value $Value -Force
     } else {
         New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $PropertyType -Force | Out-Null
