@@ -37,6 +37,18 @@ Since Intune does not support the direct application of security policies, these
   - Manages Windows Firewall rules automatically
   - Includes WhatIf support for safe testing
 
+### Global Secure Access Client Settings
+- **Detect-GlobalSecureAccessSettings.ps1**: Detects compliance with configured GSA client, registry, and browser settings.
+- **Remediate-GlobalSecureAccessSettings.ps1**: Configures documented GSA registry values and optional browser traffic controls.
+  - Supports GSA machine and user registry options documented by Microsoft
+  - Can enforce Microsoft Edge, Google Chrome, and Firefox QUIC/DNS over HTTPS mitigations
+  - Includes WhatIf support for safe remediation testing
+
+### Global Secure Access Client Installation
+- **Install-GlobalSecureAccessClient.ps1**: Optional separate Win32 app script for installing or uninstalling the Microsoft Global Secure Access client.
+  - Supports x64 and Arm64 installer packaging
+  - Keeps client deployment separate from GSA configuration remediation
+
 ## Usage
 
 - Refer to the `.SYNOPSIS` and `.EXAMPLE` sections in each script for detailed usage instructions.
